@@ -985,7 +985,7 @@ function ProductRegistrationApp() {
     return apiUrl
   }
 
-  // Excel Import/Export functions
+  // Excel Import/Export functions - Browser compatible version
   const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -993,25 +993,27 @@ function ProductRegistrationApp() {
     try {
       setImportMessage("📥 Bezig met importeren...")
 
-      // Dynamically import xlsx
-      const XLSX = await import("xlsx")
-
-      const data = await file.arrayBuffer()
-      const workbook = XLSX.read(data, { type: "array" })
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+      const text = await file.text()
+      const lines = text.split("\n")
 
       let importedCount = 0
       let skippedCount = 0
 
       // Skip header row and process data
-      for (let i = 1; i < jsonData.length; i++) {
-        const row = jsonData[i] as any[]
-        if (!row[0]) continue // Skip empty rows
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim()
+        if (!line) continue // Skip empty lines
 
-        const productName = String(row[0]).trim()
-        const categoryName = row[1] ? String(row[1]).trim() : ""
+        const columns = line.split("\t") // Tab-separated or comma-separated
+        if (columns.length === 1) {
+          // Try comma separation if tab didn't work
+          columns.splice(0, 1, ...line.split(","))
+        }
+
+        const productName = columns[0]?.trim().replace(/"/g, "")
+        const categoryName = columns[1]?.trim().replace(/"/g, "") || ""
+
+        if (!productName) continue
 
         // Check if product already exists
         const existingProduct = products.find((p) => p.name.toLowerCase() === productName.toLowerCase())
@@ -1051,8 +1053,8 @@ function ProductRegistrationApp() {
       setImportMessage(`✅ Import voltooid! ${importedCount} producten toegevoegd, ${skippedCount} overgeslagen.`)
       setTimeout(() => setImportMessage(""), 5000)
     } catch (error) {
-      console.error("Error importing Excel:", error)
-      setImportError("Fout bij importeren Excel bestand")
+      console.error("Error importing file:", error)
+      setImportError("Fout bij importeren bestand")
       setTimeout(() => setImportError(""), 3000)
     }
 
@@ -1064,42 +1066,41 @@ function ProductRegistrationApp() {
     try {
       setImportMessage("📤 Bezig met exporteren...")
 
-      // Dynamically import xlsx
-      const XLSX = await import("xlsx")
-
-      // Prepare data for export
-      const exportData = [
+      // Create CSV content
+      const csvContent = [
         ["Productnaam", "Categorie"], // Header row
         ...products.map((product) => [
           product.name,
           product.categoryId ? categories.find((c) => c.id === product.categoryId)?.name || "" : "",
         ]),
       ]
+        .map((row) => row.map((cell) => `"${cell}"`).join(","))
+        .join("\n")
 
-      // Create workbook and worksheet
-      const worksheet = XLSX.utils.aoa_to_sheet(exportData)
-      const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Producten")
-
-      // Set column widths
-      worksheet["!cols"] = [
-        { width: 40 }, // Productnaam
-        { width: 20 }, // Categorie
-      ]
+      // Create and download file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+      const link = document.createElement("a")
 
       // Generate filename with current date
       const now = new Date()
       const dateStr = now.toISOString().split("T")[0]
-      const filename = `producten_export_${dateStr}.xlsx`
+      const filename = `producten_export_${dateStr}.csv`
 
-      // Download file
-      XLSX.writeFile(workbook, filename)
+      link.href = URL.createObjectURL(blob)
+      link.download = filename
+      link.style.display = "none"
 
-      setImportMessage(`✅ Export voltooid! ${products.length} producten geëxporteerd.`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      URL.revokeObjectURL(link.href)
+
+      setImportMessage(`✅ Export voltooid! ${products.length} producten geëxporteerd naar CSV.`)
       setTimeout(() => setImportMessage(""), 3000)
     } catch (error) {
-      console.error("Error exporting Excel:", error)
-      setImportError("Fout bij exporteren naar Excel")
+      console.error("Error exporting CSV:", error)
+      setImportError("Fout bij exporteren naar CSV")
       setTimeout(() => setImportError(""), 3000)
     }
   }
@@ -2132,7 +2133,7 @@ function ProductRegistrationApp() {
                         <div>
                           <input
                             type="file"
-                            accept=".xlsx,.xls"
+                            accept=".csv,.txt"
                             onChange={handleImportExcel}
                             className="hidden"
                             id="excel-import"
@@ -2142,22 +2143,23 @@ function ProductRegistrationApp() {
                             onClick={() => document.getElementById("excel-import")?.click()}
                             className="flex items-center gap-2"
                           >
-                            📥 Import Excel
+                            📥 Import CSV
                           </Button>
                         </div>
                         <Button variant="outline" onClick={handleExportExcel} className="flex items-center gap-2">
-                          📤 Export Excel
+                          📤 Export CSV
                         </Button>
                       </div>
                     </div>
                     <div className="text-xs text-gray-600 flex-1">
                       <p className="mb-1">
-                        <strong>Excel formaat:</strong>
+                        <strong>CSV formaat:</strong>
                       </p>
                       <p>• Kolom A: Productnaam</p>
                       <p>• Kolom B: Categorie</p>
                       <p className="mt-1 text-gray-500">
-                        Import voegt nieuwe producten toe. Bestaande producten worden overgeslagen.
+                        Import voegt nieuwe producten toe. Bestaande producten worden overgeslagen. CSV bestanden kunnen
+                        geopend worden in Excel.
                       </p>
                     </div>
                   </div>
