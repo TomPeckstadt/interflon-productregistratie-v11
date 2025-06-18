@@ -985,6 +985,125 @@ function ProductRegistrationApp() {
     return apiUrl
   }
 
+  // Excel Import/Export functions
+  const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      setImportMessage("📥 Bezig met importeren...")
+
+      // Dynamically import xlsx
+      const XLSX = await import("xlsx")
+
+      const data = await file.arrayBuffer()
+      const workbook = XLSX.read(data, { type: "array" })
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+
+      let importedCount = 0
+      let skippedCount = 0
+
+      // Skip header row and process data
+      for (let i = 1; i < jsonData.length; i++) {
+        const row = jsonData[i] as any[]
+        if (!row[0]) continue // Skip empty rows
+
+        const productName = String(row[0]).trim()
+        const categoryName = row[1] ? String(row[1]).trim() : ""
+
+        // Check if product already exists
+        const existingProduct = products.find((p) => p.name.toLowerCase() === productName.toLowerCase())
+
+        if (existingProduct) {
+          skippedCount++
+          continue
+        }
+
+        // Find category ID
+        let categoryId: string | undefined = undefined
+        if (categoryName) {
+          const category = categories.find((c) => c.name.toLowerCase() === categoryName.toLowerCase())
+          categoryId = category?.id
+        }
+
+        // Create new product
+        const newProduct: Product = {
+          id: Date.now().toString() + i,
+          name: productName,
+          categoryId: categoryId,
+          created_at: new Date().toISOString(),
+        }
+
+        const result = await saveProduct(newProduct)
+        if (!result.error) {
+          importedCount++
+        }
+      }
+
+      // Refresh products list
+      const refreshResult = await fetchProducts()
+      if (refreshResult.data) {
+        setProducts(refreshResult.data)
+      }
+
+      setImportMessage(`✅ Import voltooid! ${importedCount} producten toegevoegd, ${skippedCount} overgeslagen.`)
+      setTimeout(() => setImportMessage(""), 5000)
+    } catch (error) {
+      console.error("Error importing Excel:", error)
+      setImportError("Fout bij importeren Excel bestand")
+      setTimeout(() => setImportError(""), 3000)
+    }
+
+    // Reset file input
+    event.target.value = ""
+  }
+
+  const handleExportExcel = async () => {
+    try {
+      setImportMessage("📤 Bezig met exporteren...")
+
+      // Dynamically import xlsx
+      const XLSX = await import("xlsx")
+
+      // Prepare data for export
+      const exportData = [
+        ["Productnaam", "Categorie"], // Header row
+        ...products.map((product) => [
+          product.name,
+          product.categoryId ? categories.find((c) => c.id === product.categoryId)?.name || "" : "",
+        ]),
+      ]
+
+      // Create workbook and worksheet
+      const worksheet = XLSX.utils.aoa_to_sheet(exportData)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Producten")
+
+      // Set column widths
+      worksheet["!cols"] = [
+        { width: 40 }, // Productnaam
+        { width: 20 }, // Categorie
+      ]
+
+      // Generate filename with current date
+      const now = new Date()
+      const dateStr = now.toISOString().split("T")[0]
+      const filename = `producten_export_${dateStr}.xlsx`
+
+      // Download file
+      XLSX.writeFile(workbook, filename)
+
+      setImportMessage(`✅ Export voltooid! ${products.length} producten geëxporteerd.`)
+      setTimeout(() => setImportMessage(""), 3000)
+    } catch (error) {
+      console.error("Error exporting Excel:", error)
+      setImportError("Fout bij exporteren naar Excel")
+      setTimeout(() => setImportError(""), 3000)
+    }
+  }
+
   // Print QR code function
   const printQRCode = async (product: Product) => {
     if (!product.qrcode) return
@@ -2002,6 +2121,44 @@ function ProductRegistrationApp() {
                       <Button onClick={addNewProduct} className="bg-orange-600 hover:bg-orange-700">
                         <Plus className="mr-2 h-4 w-4" /> Toevoegen
                       </Button>
+                    </div>
+                  </div>
+
+                  {/* Import/Export Section */}
+                  <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-lg border">
+                    <div className="flex-1">
+                      <Label className="text-sm font-medium mb-2 block">📊 Import/Export Producten</Label>
+                      <div className="flex gap-2">
+                        <div>
+                          <input
+                            type="file"
+                            accept=".xlsx,.xls"
+                            onChange={handleImportExcel}
+                            className="hidden"
+                            id="excel-import"
+                          />
+                          <Button
+                            variant="outline"
+                            onClick={() => document.getElementById("excel-import")?.click()}
+                            className="flex items-center gap-2"
+                          >
+                            📥 Import Excel
+                          </Button>
+                        </div>
+                        <Button variant="outline" onClick={handleExportExcel} className="flex items-center gap-2">
+                          📤 Export Excel
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-600 flex-1">
+                      <p className="mb-1">
+                        <strong>Excel formaat:</strong>
+                      </p>
+                      <p>• Kolom A: Productnaam</p>
+                      <p>• Kolom B: Categorie</p>
+                      <p className="mt-1 text-gray-500">
+                        Import voegt nieuwe producten toe. Bestaande producten worden overgeslagen.
+                      </p>
                     </div>
                   </div>
 
