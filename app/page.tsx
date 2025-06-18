@@ -1920,12 +1920,11 @@ function ProductRegistrationApp() {
                           <div className="flex items-center gap-2">
                             <Button
                               variant="outline"
-                              size="sm"
+                              size="icon"
                               onClick={() => handleEditUser(user)}
-                              className="flex items-center gap-1"
+                              className="bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100"
                             >
-                              <Edit className="h-3 w-3" />
-                              Bewerken
+                              <Edit className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="outline"
@@ -2259,12 +2258,11 @@ function ProductRegistrationApp() {
                         <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
-                            size="sm"
+                            size="icon"
                             onClick={() => handleEditCategory(category)}
-                            className="flex items-center gap-1"
+                            className="bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100"
                           >
-                            <Edit className="h-3 w-3" />
-                            Bewerken
+                            <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="outline"
@@ -2327,12 +2325,11 @@ function ProductRegistrationApp() {
                         <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
-                            size="sm"
+                            size="icon"
                             onClick={() => handleEditLocation(location)}
-                            className="flex items-center gap-1"
+                            className="bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100"
                           >
-                            <Edit className="h-3 w-3" />
-                            Bewerken
+                            <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="outline"
@@ -2392,12 +2389,11 @@ function ProductRegistrationApp() {
                         <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
-                            size="sm"
+                            size="icon"
                             onClick={() => handleEditPurpose(purpose)}
-                            className="flex items-center gap-1"
+                            className="bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100"
                           >
-                            <Edit className="h-3 w-3" />
-                            Bewerken
+                            <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="outline"
