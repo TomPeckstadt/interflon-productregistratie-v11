@@ -2825,7 +2825,7 @@ function ProductRegistrationApp() {
 
 // UserInfo component
 function UserInfo() {
-  const { user, logout } = useAuth()
+  const { user, signOut } = useAuth()
 
   if (!user) return null
 
@@ -2835,7 +2835,12 @@ function UserInfo() {
         <div className="text-sm font-medium text-gray-900">{user.email}</div>
         <div className="text-xs text-gray-500">Ingelogd</div>
       </div>
-      <Button variant="outline" size="sm" onClick={logout} className="flex items-center gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={signOut}
+        className="flex items-center gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700"
+      >
         Uitloggen
       </Button>
     </div>
