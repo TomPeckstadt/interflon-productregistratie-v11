@@ -165,6 +165,87 @@ const mockCategories: Category[] = [
 ]
 const mockRegistrations: Registration[] = []
 
+// NEW: PDF Storage functions
+export const uploadPDFToStorage = async (
+  file: File,
+  productId: string,
+): Promise<{ url: string | null; error: any }> => {
+  if (!supabase) {
+    console.log("📎 No Supabase - mock PDF upload")
+    // Create a mock URL for development
+    const mockUrl = URL.createObjectURL(file)
+    return { url: mockUrl, error: null }
+  }
+
+  try {
+    console.log("📎 Uploading PDF to Supabase Storage...")
+
+    // Create a unique filename
+    const timestamp = Date.now()
+    const fileExtension = file.name.split(".").pop()
+    const fileName = `product-${productId}-${timestamp}.${fileExtension}`
+    const filePath = `product-attachments/${fileName}`
+
+    // Upload file to storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("product-files")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      })
+
+    if (uploadError) {
+      console.error("❌ Error uploading to storage:", uploadError)
+      return { url: null, error: uploadError }
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage.from("product-files").getPublicUrl(filePath)
+
+    console.log("✅ PDF uploaded to storage:", urlData.publicUrl)
+    return { url: urlData.publicUrl, error: null }
+  } catch (error) {
+    console.error("❌ Exception in uploadPDFToStorage:", error)
+    return { url: null, error }
+  }
+}
+
+export const deletePDFFromStorage = async (attachmentUrl: string): Promise<{ error: any }> => {
+  if (!supabase) {
+    console.log("🗑️ No Supabase - mock PDF delete")
+    return { error: null }
+  }
+
+  try {
+    // Extract file path from URL
+    const url = new URL(attachmentUrl)
+    const pathParts = url.pathname.split("/")
+    const bucketIndex = pathParts.findIndex((part) => part === "product-files")
+
+    if (bucketIndex === -1) {
+      console.log("⚠️ Not a storage URL, skipping delete")
+      return { error: null }
+    }
+
+    const filePath = pathParts.slice(bucketIndex + 1).join("/")
+
+    console.log("🗑️ Deleting PDF from storage:", filePath)
+
+    const { error } = await supabase.storage.from("product-files").remove([filePath])
+
+    if (error) {
+      console.error("❌ Error deleting from storage:", error)
+      return { error }
+    }
+
+    console.log("✅ PDF deleted from storage")
+    return { error: null }
+  } catch (error) {
+    console.error("❌ Exception in deletePDFFromStorage:", error)
+    return { error }
+  }
+}
+
 // SIMPLIFIED: Fetch functions
 export const fetchUsers = async () => {
   if (!supabase) {
