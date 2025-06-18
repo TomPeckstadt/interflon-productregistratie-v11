@@ -35,6 +35,8 @@ import {
   updateProduct,
   updateCategory,
   testSupabaseConnection,
+  uploadPDFToStorage,
+  deletePDFFromStorage,
 } from "@/lib/supabase"
 
 // UI Components
@@ -859,20 +861,30 @@ function ProductRegistrationApp() {
     }
 
     try {
-      const attachmentUrl = URL.createObjectURL(file)
+      setImportMessage("📎 Bezig met uploaden...")
+
+      // Upload to Supabase Storage
+      const { url: storageUrl, error: uploadError } = await uploadPDFToStorage(file, product.id)
+
+      if (uploadError || !storageUrl) {
+        setImportError("Fout bij uploaden bijlage")
+        setTimeout(() => setImportError(""), 3000)
+        return
+      }
+
+      // Update product with storage URL
       const updateData = {
         name: product.name,
         qr_code: product.qrcode || null,
         category_id: product.categoryId ? Number.parseInt(product.categoryId) : null,
-        attachment_url: attachmentUrl,
+        attachment_url: storageUrl,
         attachment_name: file.name,
       }
 
-      setImportMessage("📎 Bezig met uploaden...")
       const result = await updateProduct(product.id, updateData)
 
       if (result.error) {
-        setImportError("Fout bij uploaden bijlage")
+        setImportError("Fout bij bijwerken product")
         setTimeout(() => setImportError(""), 3000)
       } else {
         setImportMessage("✅ Bijlage toegevoegd!")
@@ -893,6 +905,14 @@ function ProductRegistrationApp() {
 
   const handleRemoveAttachment = async (product: Product) => {
     try {
+      setImportMessage("🗑️ Bezig met verwijderen...")
+
+      // Delete from storage if it's a storage URL
+      if (product.attachmentUrl) {
+        await deletePDFFromStorage(product.attachmentUrl)
+      }
+
+      // Update product to remove attachment
       const updateData = {
         name: product.name,
         qr_code: product.qrcode || null,
@@ -901,7 +921,6 @@ function ProductRegistrationApp() {
         attachment_name: null,
       }
 
-      setImportMessage("🗑️ Bezig met verwijderen...")
       const result = await updateProduct(product.id, updateData)
 
       if (result.error) {
