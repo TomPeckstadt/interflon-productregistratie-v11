@@ -1361,6 +1361,19 @@ KOLOM UITLEG:
 LABELPRINTER SOFTWARE SETUP:
 ============================
 
+ALTEC ATP-300 PRO:
+1. Open Altec Label Designer software
+2. Ga naar File → Import Data → CSV
+3. Selecteer ${csvFilename}
+4. Map de velden:
+   - Tekst 1: ProductNaam
+   - Tekst 2: Categorie  
+   - QR Code: QRCode (tekst) of QRCodeURL (afbeelding)
+   - Barcode: QRCode
+5. Stel label afmetingen in (bijv. 25x15mm, 40x20mm)
+6. Test print 1 label voordat je batch print
+7. Voor QR afbeeldingen: gebruik QRCodeURL veld
+
 BROTHER P-TOUCH EDITOR:
 1. Open P-touch Editor
 2. Ga naar File → Import
@@ -1386,15 +1399,34 @@ ZEBRA ZEBRADESIGNER:
 ALGEMENE TIPS:
 ==============
 - QR code afbeeldingen worden automatisch gedownload via URL
-- Gebruik 200x200px voor optimale QR code kwaliteit
+- Voor Altec ATP-300 Pro: gebruik 200x200px QR codes voor beste kwaliteit
 - Test eerst met 1-2 labels voordat je alles print
 - Bewaar dit bestand samen met de CSV voor referentie
+- Bij problemen: controleer of CSV correct wordt geïmporteerd
 
 LABEL AFMETINGEN SUGGESTIES:
 ===========================
-- Klein: 25mm x 25mm (alleen QR code)
-- Medium: 50mm x 25mm (QR + productnaam)
-- Groot: 62mm x 29mm (QR + naam + categorie)
+Voor Altec ATP-300 Pro:
+- Klein: 25mm x 15mm (alleen QR code + kort ID)
+- Medium: 40mm x 20mm (QR + productnaam verkort)
+- Groot: 50mm x 30mm (QR + volledige naam + categorie)
+- Extra groot: 62mm x 29mm (QR + naam + categorie + ID)
+
+ALTEC ATP-300 PRO SPECIFIEKE TIPS:
+==================================
+- Gebruik TrueType fonts voor beste leesbaarheid
+- QR code minimaal 8mm x 8mm voor betrouwbare scan
+- Stel print snelheid in op 'Medium' voor beste kwaliteit
+- Gebruik 'High Quality' mode voor QR codes
+- Test verschillende label materialen (papier/synthetisch)
+- Kalibreer printer regelmatig voor juiste positionering
+
+TROUBLESHOOTING ALTEC ATP-300 PRO:
+==================================
+- CSV niet geïmporteerd? → Controleer encoding (UTF-8)
+- QR codes niet zichtbaar? → Gebruik QRCode tekstveld ipv URL
+- Labels scheef? → Kalibreer printer via instellingen
+- Slechte kwaliteit? → Verhoog print kwaliteit en verlaag snelheid
 
 Voor vragen: bewaar dit instructiebestand!
 `
