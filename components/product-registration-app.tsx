@@ -2344,17 +2344,7 @@ export default function ProductRegistrationApp() {
                     <CardTitle>Product Beheer</CardTitle>
                     <CardDescription>Beheer producten en hun QR codes</CardDescription>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={printAllQRLabels}
-                      className="bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
-                      disabled={products.filter((p) => p.qrcode).length === 0}
-                    >
-                      <Printer className="w-4 h-4 mr-2" />
-                      Print Alle QR Labels ({products.filter((p) => p.qrcode).length})
-                    </Button>
-                  </div>
+                  <div className="flex gap-2"></div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -2362,16 +2352,6 @@ export default function ProductRegistrationApp() {
                 <div className="p-4 border rounded-md bg-gray-50">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold">Nieuw Product Toevoegen</h3>
-                    <Button
-                      variant="outline"
-                      onClick={printAllQRLabels}
-                      className="bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
-                      disabled={products.filter((p) => p.qrcode).length === 0}
-                      size="sm"
-                    >
-                      <Printer className="w-4 h-4 mr-2" />
-                      Print Alle QR Labels ({products.filter((p) => p.qrcode).length})
-                    </Button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Input
@@ -2417,6 +2397,32 @@ export default function ProductRegistrationApp() {
                       Toevoegen
                     </Button>
                   </div>
+                </div>
+
+                {/* QR Labels Print Section - NIEUWE SECTIE */}
+                <div className="p-4 border rounded-md bg-purple-50 border-purple-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-purple-800 mb-1">🏷️ QR Labels Afdrukken</h3>
+                      <p className="text-sm text-purple-600">
+                        Print alle QR codes als labels voor eenvoudige identificatie
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={printAllQRLabels}
+                      className="bg-purple-100 text-purple-700 hover:bg-purple-200 border-purple-300"
+                      disabled={products.filter((p) => p.qrcode).length === 0}
+                    >
+                      <Printer className="w-4 h-4 mr-2" />
+                      Print Alle QR Labels ({products.filter((p) => p.qrcode).length})
+                    </Button>
+                  </div>
+                  {products.filter((p) => p.qrcode).length === 0 && (
+                    <p className="text-xs text-purple-500 mt-2">
+                      💡 Voeg eerst QR codes toe aan producten om labels te kunnen afdrukken
+                    </p>
+                  )}
                 </div>
 
                 {/* Product Search */}
