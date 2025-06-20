@@ -2338,11 +2338,11 @@ export default function ProductRegistrationApp() {
           {/* Products Tab */}
           <TabsContent value="products">
             <Card>
-              <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 border-b">
+              <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2 text-xl">📦 Producten Beheren</CardTitle>
-                    <CardDescription>Voeg nieuwe producten toe of bewerk bestaande</CardDescription>
+                    <CardTitle>Product Beheer</CardTitle>
+                    <CardDescription>Beheer producten en hun QR codes</CardDescription>
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -2360,7 +2360,19 @@ export default function ProductRegistrationApp() {
               <CardContent className="space-y-6">
                 {/* Add New Product */}
                 <div className="p-4 border rounded-md bg-gray-50">
-                  <h3 className="font-semibold mb-4">Nieuw Product Toevoegen</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold">Nieuw Product Toevoegen</h3>
+                    <Button
+                      variant="outline"
+                      onClick={printAllQRLabels}
+                      className="bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
+                      disabled={products.filter((p) => p.qrcode).length === 0}
+                      size="sm"
+                    >
+                      <Printer className="w-4 h-4 mr-2" />
+                      Print Alle QR Labels ({products.filter((p) => p.qrcode).length})
+                    </Button>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Input
                       placeholder="Product naam"
