@@ -985,6 +985,271 @@ function ProductRegistrationApp() {
     return apiUrl
   }
 
+  // Print QR code function
+  const printQRCode = async (product: Product) => {
+    if (!product.qrcode) return
+
+    try {
+      const qrImageUrl = generateRealQRCode(product.qrcode)
+
+      // Create a new window for printing
+      const printWindow = window.open("", "_blank")
+      if (!printWindow) return
+
+      printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>QR Code - ${product.name}</title>
+          <style>
+            body {
+              margin: 0;
+              padding: 20px;
+              font-family: Arial, sans-serif;
+              text-align: center;
+            }
+            .qr-container {
+              display: inline-block;
+              border: 2px solid #000;
+              padding: 10px;
+              margin: 10px;
+              background: white;
+            }
+            .qr-code {
+              width: 150px;
+              height: 150px;
+              margin-bottom: 10px;
+            }
+            .product-name {
+              font-size: 12px;
+              font-weight: bold;
+              margin-bottom: 5px;
+              word-wrap: break-word;
+              max-width: 150px;
+            }
+            .qr-text {
+              font-size: 10px;
+              font-family: monospace;
+              color: #666;
+            }
+            @media print {
+              body { margin: 0; padding: 5px; }
+              .qr-container { 
+                page-break-inside: avoid;
+                margin: 5px;
+                padding: 5px;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="qr-container">
+            <div class="product-name">${product.name}</div>
+            <img src="${qrImageUrl}" alt="QR Code" class="qr-code" />
+            <div class="qr-text">${product.qrcode}</div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() {
+                window.close();
+              }, 1000);
+            }
+          </script>
+        </body>
+      </html>
+    `)
+      printWindow.document.close()
+    } catch (error) {
+      console.error("Error generating QR code for printing:", error)
+      setImportError("Fout bij genereren QR-code voor afdrukken")
+      setTimeout(() => setImportError(""), 3000)
+    }
+  }
+
+  // Print all QR codes function - optimized for label printers
+  const printAllQRCodes = async () => {
+    try {
+      // Filter products that have QR codes
+      const productsWithQR = products.filter((product) => product.qrcode)
+
+      if (productsWithQR.length === 0) {
+        setImportError("Geen producten met QR codes gevonden")
+        setTimeout(() => setImportError(""), 3000)
+        return
+      }
+
+      setImportMessage(`📱 Bezig met voorbereiden van ${productsWithQR.length} QR codes voor afdrukken...`)
+
+      // Create a new window for printing all QR codes
+      const printWindow = window.open("", "_blank")
+      if (!printWindow) {
+        setImportError("Kon print venster niet openen")
+        setTimeout(() => setImportError(""), 3000)
+        return
+      }
+
+      // Generate QR code URLs for all products
+      const qrCodeData = productsWithQR.map((product) => ({
+        product,
+        qrImageUrl: generateRealQRCode(product.qrcode!),
+      }))
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Alle QR Codes - ${productsWithQR.length} labels</title>
+            <style>
+              body {
+                margin: 0;
+                padding: 10px;
+                font-family: Arial, sans-serif;
+                background: white;
+              }
+              .qr-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 5px;
+                width: 100%;
+              }
+              .qr-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                border: 1px solid #000;
+                padding: 8px;
+                background: white;
+                page-break-inside: avoid;
+                width: 170px;
+                height: 220px;
+                justify-content: space-between;
+              }
+              .product-name {
+                font-size: 10px;
+                font-weight: bold;
+                text-align: center;
+                word-wrap: break-word;
+                line-height: 1.2;
+                max-height: 36px;
+                overflow: hidden;
+                margin-bottom: 5px;
+              }
+              .qr-code {
+                width: 120px;
+                height: 120px;
+                margin: 5px 0;
+              }
+              .qr-text {
+                font-size: 8px;
+                font-family: monospace;
+                color: #333;
+                text-align: center;
+                margin-top: 5px;
+              }
+              .category-text {
+                font-size: 7px;
+                color: #666;
+                text-align: center;
+                margin-top: 2px;
+              }
+              @media print {
+                body { 
+                  margin: 0; 
+                  padding: 5px; 
+                }
+                .qr-grid {
+                  gap: 2px;
+                }
+                .qr-container { 
+                  page-break-inside: avoid;
+                  margin: 2px;
+                  padding: 5px;
+                  width: 160px;
+                  height: 200px;
+                }
+                .qr-code {
+                  width: 100px;
+                  height: 100px;
+                }
+              }
+              @page {
+                margin: 10mm;
+                size: A4;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="qr-grid">
+              ${qrCodeData
+                .map(({ product, qrImageUrl }) => {
+                  const categoryName = product.categoryId
+                    ? categories.find((c) => c.id === product.categoryId)?.name || ""
+                    : ""
+
+                  return `
+                  <div class="qr-container">
+                    <div class="product-name">${product.name}</div>
+                    <img src="${qrImageUrl}" alt="QR Code" class="qr-code" />
+                    <div class="qr-text">${product.qrcode}</div>
+                    ${categoryName ? `<div class="category-text">${categoryName}</div>` : ""}
+                  </div>
+                `
+                })
+                .join("")}
+            </div>
+            <script>
+              let imagesLoaded = 0;
+              const totalImages = ${productsWithQR.length};
+              
+              // Wait for all images to load before printing
+              const images = document.querySelectorAll('.qr-code');
+              
+              function checkAllImagesLoaded() {
+                imagesLoaded++;
+                if (imagesLoaded === totalImages) {
+                  setTimeout(() => {
+                    window.print();
+                    setTimeout(() => {
+                      window.close();
+                    }, 1000);
+                  }, 500);
+                }
+              }
+              
+              images.forEach(img => {
+                if (img.complete) {
+                  checkAllImagesLoaded();
+                } else {
+                  img.onload = checkAllImagesLoaded;
+                  img.onerror = checkAllImagesLoaded;
+                }
+              });
+              
+              // Fallback: print after 5 seconds regardless
+              setTimeout(() => {
+                if (imagesLoaded < totalImages) {
+                  window.print();
+                  setTimeout(() => {
+                    window.close();
+                  }, 1000);
+                }, 5000);
+              });
+            </script>
+          </body>
+        </html>
+      `)
+      printWindow.document.close()
+
+      setImportMessage(`✅ ${productsWithQR.length} QR codes klaargezet voor afdrukken!`)
+      setTimeout(() => setImportMessage(""), 3000)
+    } catch (error) {
+      console.error("Error generating all QR codes for printing:", error)
+      setImportError("Fout bij genereren QR codes voor afdrukken")
+      setTimeout(() => setImportError(""), 3000)
+    }
+  }
+
   // Excel Import/Export functions - Browser compatible version
   const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -1101,88 +1366,6 @@ function ProductRegistrationApp() {
     } catch (error) {
       console.error("Error exporting CSV:", error)
       setImportError("Fout bij exporteren naar CSV")
-      setTimeout(() => setImportError(""), 3000)
-    }
-  }
-
-  // Print QR code function
-  const printQRCode = async (product: Product) => {
-    if (!product.qrcode) return
-
-    try {
-      const qrImageUrl = generateRealQRCode(product.qrcode)
-
-      // Create a new window for printing
-      const printWindow = window.open("", "_blank")
-      if (!printWindow) return
-
-      printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>QR Code - ${product.name}</title>
-          <style>
-            body {
-              margin: 0;
-              padding: 20px;
-              font-family: Arial, sans-serif;
-              text-align: center;
-            }
-            .qr-container {
-              display: inline-block;
-              border: 2px solid #000;
-              padding: 10px;
-              margin: 10px;
-              background: white;
-            }
-            .qr-code {
-              width: 150px;
-              height: 150px;
-              margin-bottom: 10px;
-            }
-            .product-name {
-              font-size: 12px;
-              font-weight: bold;
-              margin-bottom: 5px;
-              word-wrap: break-word;
-              max-width: 150px;
-            }
-            .qr-text {
-              font-size: 10px;
-              font-family: monospace;
-              color: #666;
-            }
-            @media print {
-              body { margin: 0; padding: 5px; }
-              .qr-container { 
-                page-break-inside: avoid;
-                margin: 5px;
-                padding: 5px;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="qr-container">
-            <div class="product-name">${product.name}</div>
-            <img src="${qrImageUrl}" alt="QR Code" class="qr-code" />
-            <div class="qr-text">${product.qrcode}</div>
-          </div>
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(function() {
-                window.close();
-              }, 1000);
-            }
-          </script>
-        </body>
-      </html>
-    `)
-      printWindow.document.close()
-    } catch (error) {
-      console.error("Error generating QR code for printing:", error)
-      setImportError("Fout bij genereren QR-code voor afdrukken")
       setTimeout(() => setImportError(""), 3000)
     }
   }
@@ -2149,6 +2332,14 @@ function ProductRegistrationApp() {
                         <Button variant="outline" onClick={handleExportExcel} className="flex items-center gap-2">
                           📤 Export CSV
                         </Button>
+                        <Button
+                          variant="outline"
+                          onClick={printAllQRCodes}
+                          className="flex items-center gap-2 bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
+                        >
+                          <Printer className="h-4 w-4" />
+                          Print Alle QR Codes ({products.filter((p) => p.qrcode).length})
+                        </Button>
                       </div>
                     </div>
                     <div className="text-xs text-gray-600 flex-1">
@@ -2160,6 +2351,9 @@ function ProductRegistrationApp() {
                       <p className="mt-1 text-gray-500">
                         Import voegt nieuwe producten toe. Bestaande producten worden overgeslagen. CSV bestanden kunnen
                         geopend worden in Excel.
+                      </p>
+                      <p className="mt-2 text-green-600 text-xs">
+                        <strong>QR Codes:</strong> Print alle QR codes tegelijk voor labelprinter gebruik.
                       </p>
                     </div>
                   </div>
