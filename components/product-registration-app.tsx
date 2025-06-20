@@ -2338,20 +2338,21 @@ export default function ProductRegistrationApp() {
           {/* Products Tab */}
           <TabsContent value="products">
             <Card>
-              <CardHeader>
+              <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 border-b">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Product Beheer</CardTitle>
-                    <CardDescription>Beheer producten en hun QR codes</CardDescription>
+                    <CardTitle className="flex items-center gap-2 text-xl">📦 Producten Beheren</CardTitle>
+                    <CardDescription>Voeg nieuwe producten toe of bewerk bestaande</CardDescription>
                   </div>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       onClick={printAllQRLabels}
-                      className="bg-purple-50 text-purple-700 hover:bg-purple-100"
+                      className="bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
+                      disabled={products.filter((p) => p.qrcode).length === 0}
                     >
                       <Printer className="w-4 h-4 mr-2" />
-                      Print Alle QR Labels
+                      Print Alle QR Labels ({products.filter((p) => p.qrcode).length})
                     </Button>
                   </div>
                 </div>
