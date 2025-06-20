@@ -1250,6 +1250,174 @@ function ProductRegistrationApp() {
     }
   }
 
+  // Export QR codes to Excel/CSV for label printers
+  const exportQRCodesForLabelPrinter = async () => {
+    try {
+      // Filter products that have QR codes
+      const productsWithQR = products.filter((product) => product.qrcode)
+
+      if (productsWithQR.length === 0) {
+        setImportError("Geen producten met QR codes gevonden")
+        setTimeout(() => setImportError(""), 3000)
+        return
+      }
+
+      setImportMessage(`📊 Bezig met exporteren van ${productsWithQR.length} QR codes voor labelprinter...`)
+
+      // Create comprehensive CSV content for label printers
+      const csvContent = [
+        // Header row with all necessary fields for label printer software
+        [
+          "ProductNaam",
+          "QRCode",
+          "Categorie",
+          "QRCodeURL",
+          "ProductID",
+          "CreatedDate",
+          "LabelText1",
+          "LabelText2",
+          "LabelText3",
+        ],
+        // Data rows
+        ...productsWithQR.map((product) => {
+          const categoryName = product.categoryId ? categories.find((c) => c.id === product.categoryId)?.name || "" : ""
+
+          const qrImageUrl = generateRealQRCode(product.qrcode!)
+          const createdDate = product.created_at
+            ? new Date(product.created_at).toLocaleDateString("nl-NL")
+            : new Date().toLocaleDateString("nl-NL")
+
+          return [
+            product.name, // ProductNaam
+            product.qrcode, // QRCode (text)
+            categoryName, // Categorie
+            qrImageUrl, // QRCodeURL (for image import)
+            product.id, // ProductID
+            createdDate, // CreatedDate
+            product.name, // LabelText1 (duplicate for flexibility)
+            product.qrcode, // LabelText2 (QR code text)
+            categoryName, // LabelText3 (category)
+          ]
+        }),
+      ]
+        .map((row) => row.map((cell) => `"${cell}"`).join(","))
+        .join("\n")
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+      const link = document.createElement("a")
+
+      // Generate filename with current date and count
+      const now = new Date()
+      const dateStr = now.toISOString().split("T")[0]
+      const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "")
+      const filename = `QR_Labels_Export_${dateStr}_${timeStr}_${productsWithQR.length}items.csv`
+
+      link.href = URL.createObjectURL(blob)
+      link.download = filename
+      link.style.display = "none"
+
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      URL.revokeObjectURL(link.href)
+
+      setImportMessage(
+        `✅ Labelprinter export voltooid! ${productsWithQR.length} QR codes geëxporteerd naar ${filename}`,
+      )
+      setTimeout(() => setImportMessage(""), 5000)
+
+      // Also create a detailed instruction file
+      await createLabelPrinterInstructions(filename, productsWithQR.length)
+    } catch (error) {
+      console.error("Error exporting QR codes for label printer:", error)
+      setImportError("Fout bij exporteren QR codes voor labelprinter")
+      setTimeout(() => setImportError(""), 3000)
+    }
+  }
+
+  // Create instruction file for label printer setup
+  const createLabelPrinterInstructions = async (csvFilename: string, itemCount: number) => {
+    const instructions = `LABELPRINTER INSTRUCTIES
+========================
+
+Bestand: ${csvFilename}
+Aantal items: ${itemCount}
+Gegenereerd: ${new Date().toLocaleString("nl-NL")}
+
+KOLOM UITLEG:
+=============
+- ProductNaam: Volledige productnaam
+- QRCode: QR code tekst/nummer  
+- Categorie: Product categorie
+- QRCodeURL: Link naar QR code afbeelding (120x120px)
+- ProductID: Uniek product ID
+- CreatedDate: Aanmaakdatum
+- LabelText1: Extra tekstveld (productnaam)
+- LabelText2: Extra tekstveld (QR code)
+- LabelText3: Extra tekstveld (categorie)
+
+LABELPRINTER SOFTWARE SETUP:
+============================
+
+BROTHER P-TOUCH EDITOR:
+1. Open P-touch Editor
+2. Ga naar File → Import
+3. Selecteer ${csvFilename}
+4. Kies "ProductNaam" voor hoofdtekst
+5. Kies "QRCodeURL" voor QR code afbeelding
+6. Kies "Categorie" voor subtekst
+
+DYMO CONNECT:
+1. Open Dymo Connect
+2. Kies label template
+3. Ga naar Import Data
+4. Selecteer ${csvFilename}
+5. Map velden naar label elementen
+
+ZEBRA ZEBRADESIGNER:
+1. Open ZebraDesigner
+2. Create New Label
+3. Database → Connect to Database
+4. Selecteer CSV file: ${csvFilename}
+5. Drag fields naar label design
+
+ALGEMENE TIPS:
+==============
+- QR code afbeeldingen worden automatisch gedownload via URL
+- Gebruik 200x200px voor optimale QR code kwaliteit
+- Test eerst met 1-2 labels voordat je alles print
+- Bewaar dit bestand samen met de CSV voor referentie
+
+LABEL AFMETINGEN SUGGESTIES:
+===========================
+- Klein: 25mm x 25mm (alleen QR code)
+- Medium: 50mm x 25mm (QR + productnaam)
+- Groot: 62mm x 29mm (QR + naam + categorie)
+
+Voor vragen: bewaar dit instructiebestand!
+`
+
+    try {
+      const instructionBlob = new Blob([instructions], { type: "text/plain;charset=utf-8;" })
+      const instructionLink = document.createElement("a")
+      const instructionFilename = `QR_Labels_Instructies_${new Date().toISOString().split("T")[0]}.txt`
+
+      instructionLink.href = URL.createObjectURL(instructionBlob)
+      instructionLink.download = instructionFilename
+      instructionLink.style.display = "none"
+
+      document.body.appendChild(instructionLink)
+      instructionLink.click()
+      document.body.removeChild(instructionLink)
+
+      URL.revokeObjectURL(instructionLink.href)
+    } catch (error) {
+      console.log("Could not create instruction file, but CSV export was successful")
+    }
+  }
+
   // Excel Import/Export functions - Browser compatible version
   const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -1966,7 +2134,9 @@ function ProductRegistrationApp() {
 
                       {selectedProduct && (
                         <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
-                          <div className="text-sm font-medium text-green-800">✅ Geselecteerd: {selectedProduct}</div>
+                          <div classNameclassName="text-sm font-medium text-green-800">
+                            ✅ Geselecteerd: {selectedProduct}
+                          </div>
                           {qrScanResult && <div className="text-xs text-green-600 mt-1">QR Code: {qrScanResult}</div>}
                         </div>
                       )}
@@ -2340,6 +2510,13 @@ function ProductRegistrationApp() {
                           <Printer className="h-4 w-4" />
                           Print Alle QR Codes ({products.filter((p) => p.qrcode).length})
                         </Button>
+                        <Button
+                          variant="outline"
+                          onClick={exportQRCodesForLabelPrinter}
+                          className="flex items-center gap-2 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                        >
+                          🏷️ Export voor Labelprinter ({products.filter((p) => p.qrcode).length})
+                        </Button>
                       </div>
                     </div>
                     <div className="text-xs text-gray-600 flex-1">
@@ -2349,11 +2526,14 @@ function ProductRegistrationApp() {
                       <p>• Kolom A: Productnaam</p>
                       <p>• Kolom B: Categorie</p>
                       <p className="mt-1 text-gray-500">
-                        Import voegt nieuwe producten toe. Bestaande producten worden overgeslagen. CSV bestanden kunnen
-                        geopend worden in Excel.
+                        Import voegt nieuwe producten toe. Bestaande producten worden overgeslagen.
                       </p>
                       <p className="mt-2 text-green-600 text-xs">
                         <strong>QR Codes:</strong> Print alle QR codes tegelijk voor labelprinter gebruik.
+                      </p>
+                      <p className="mt-1 text-blue-600 text-xs">
+                        <strong>Labelprinter:</strong> Export QR codes naar Excel/CSV voor Brother, Dymo, Zebra
+                        printers.
                       </p>
                     </div>
                   </div>
